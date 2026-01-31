@@ -11,7 +11,7 @@ dotenv.config();
 connectDB();
 
 const app = express();
-const server = http.createServer(app);
+
 // const io = new Server(server, {
 //     cors: {
 //         origin: 'http://localhost:5173',
@@ -21,7 +21,7 @@ const server = http.createServer(app);
 // });
 
 // Middleware
-
+const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: [
@@ -34,7 +34,7 @@ const io = new Server(server, {
 });
 
 
-app.use(cors());
+app.use(cors())
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
