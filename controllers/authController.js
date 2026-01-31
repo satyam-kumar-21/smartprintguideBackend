@@ -1,6 +1,8 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const { generateOTP, sendOTPEmail } = require('../utils/emailService');
+const { storeOTP, verifyOTP } = require('../utils/otpService');
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -48,25 +50,82 @@ const authUser = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Register a new user
-// @route   POST /api/auth/register
+// @desc    Send OTP for registration
+// @route   POST /api/auth/send-registration-otp
 // @access  Public
-const registerUser = asyncHandler(async (req, res) => {
+const sendRegistrationOTP = asyncHandler(async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
-    const userExists = await User.findOne({ email });
 
+    console.log('Send registration OTP request:', { firstName, lastName, email });
+
+    // Validate input
+    if (!firstName || !lastName || !email || !password) {
+        console.log('Validation failed: missing fields');
+        res.status(400);
+        throw new Error('All fields are required');
+    }
+
+    // Check if user already exists
+    const userExists = await User.findOne({ email });
     if (userExists) {
+        console.log('User already exists:', email);
         res.status(400);
         throw new Error('User already exists');
     }
 
-    const user = await User.create({
+    // Generate and send OTP
+    const otp = generateOTP();
+    console.log('Generated OTP for registration:', otp);
+
+    await sendOTPEmail(email, otp, 'registration');
+
+    // Store OTP temporarily (in production, store user data too)
+    storeOTP(email, otp);
+
+    // Store registration data temporarily (in production, use Redis or temp storage)
+    global.tempRegistrationData = global.tempRegistrationData || new Map();
+    global.tempRegistrationData.set(email, {
         firstName,
         lastName,
-        name: `${firstName} ${lastName}`,
-        email,
         password,
+        expiresAt: Date.now() + (10 * 60 * 1000) // 10 minutes
     });
+
+    console.log('Registration OTP sent successfully to:', email);
+    res.json({ message: 'OTP sent to your email' });
+});
+
+// @desc    Verify OTP and register user
+// @route   POST /api/auth/verify-registration-otp
+// @access  Public
+const verifyRegistrationOTP = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+
+    // Verify OTP
+    const isValidOTP = verifyOTP(email, otp);
+    if (!isValidOTP) {
+        res.status(400);
+        throw new Error('Invalid or expired OTP');
+    }
+
+    // Get registration data
+    const registrationData = global.tempRegistrationData?.get(email);
+    if (!registrationData || Date.now() > registrationData.expiresAt) {
+        res.status(400);
+        throw new Error('Registration data expired');
+    }
+
+    // Create user
+    const user = await User.create({
+        firstName: registrationData.firstName,
+        lastName: registrationData.lastName,
+        name: `${registrationData.firstName} ${registrationData.lastName}`,
+        email,
+        password: registrationData.password,
+    });
+
+    // Clean up temp data
+    global.tempRegistrationData.delete(email);
 
     if (user) {
         res.status(201).json({
@@ -82,6 +141,60 @@ const registerUser = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Invalid user data');
     }
+});
+
+// @desc    Send OTP for password reset
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    console.log('Forgot password request for:', email);
+
+    const user = await User.findOne({ email });
+    if (!user) {
+        console.log('User not found:', email);
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    // Generate and send OTP
+    const otp = generateOTP();
+    console.log('Generated OTP for password reset:', otp);
+
+    await sendOTPEmail(email, otp, 'password-reset');
+
+    // Store OTP
+    storeOTP(`${email}-reset`, otp);
+
+    console.log('Password reset OTP sent successfully to:', email);
+    res.json({ message: 'Password reset OTP sent to your email' });
+});
+
+// @desc    Verify OTP and reset password
+// @route   POST /api/auth/reset-password
+// @access  Public
+const resetPassword = asyncHandler(async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+
+    // Verify OTP
+    const isValidOTP = verifyOTP(`${email}-reset`, otp);
+    if (!isValidOTP) {
+        res.status(400);
+        throw new Error('Invalid or expired OTP');
+    }
+
+    // Update password
+    const user = await User.findOne({ email });
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'Password reset successfully' });
 });
 
 // @desc    Get user profile
@@ -149,56 +262,78 @@ const getUsers = asyncHandler(async (req, res) => {
 // @desc    Delete user
 // @route   DELETE /api/auth/users/:id
 // @access  Private/Admin
-const deleteUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+const deleteUser = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.params.id);
 
-    if (user) {
-        if (user.isAdmin) {
-            res.status(400);
-            throw new Error('Cannot delete admin user');
+        if (user) {
+            if (user.isAdmin) {
+                return res.status(400).json({ message: 'Cannot delete admin user' });
+            }
+            await user.deleteOne();
+            res.json({ message: 'User removed' });
+        } else {
+            res.status(404).json({ message: 'User not found' });
         }
-        await user.deleteOne();
-        res.json({ message: 'User removed' });
-    } else {
-        res.status(404);
-        throw new Error('User not found');
+    } catch (error) {
+        console.error('Delete user error:', error);
+        next(error);
     }
-});
+};
 
 // @desc    Block user
 // @route   PUT /api/auth/users/:id/block
 // @access  Private/Admin
-const blockUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+const blockUser = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.params.id);
 
-    if (user) {
-        if (user.isAdmin) {
-            res.status(400);
-            throw new Error('Cannot block admin user');
+        if (user) {
+            if (user.isAdmin) {
+                return res.status(400).json({ message: 'Cannot block admin user' });
+            }
+            user.isBlocked = true;
+            await user.save();
+            res.json({ message: 'User blocked successfully' });
+        } else {
+            res.status(404).json({ message: 'User not found' });
         }
-        user.isBlocked = true;
-        await user.save();
-        res.json({ message: 'User blocked successfully' });
-    } else {
-        res.status(404);
-        throw new Error('User not found');
+    } catch (error) {
+        console.error('Block user error:', error);
+        next(error);
     }
-});
+};
 
 // @desc    Unblock user
 // @route   PUT /api/auth/users/:id/unblock
 // @access  Private/Admin
-const unblockUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+const unblockUser = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.params.id);
 
-    if (user) {
-        user.isBlocked = false;
-        await user.save();
-        res.json({ message: 'User unblocked successfully' });
-    } else {
-        res.status(404);
-        throw new Error('User not found');
+        if (user) {
+            user.isBlocked = false;
+            await user.save();
+            res.json({ message: 'User unblocked successfully' });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        console.error('Unblock user error:', error);
+        next(error);
     }
-});
+};
 
-module.exports = { authUser, registerUser, getUserProfile, updateUserProfile, getUsers, deleteUser, blockUser, unblockUser };
+module.exports = {
+    authUser,
+    sendRegistrationOTP,
+    verifyRegistrationOTP,
+    forgotPassword,
+    resetPassword,
+    getUserProfile,
+    updateUserProfile,
+    getUsers,
+    deleteUser,
+    blockUser,
+    unblockUser
+};
