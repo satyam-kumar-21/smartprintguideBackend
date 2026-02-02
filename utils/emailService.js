@@ -39,14 +39,33 @@ const initializeTransporter = async () => {
         if (!testAccount) {
             testAccount = await createTestAccount();
         }
+    } else if (process.env.EMAIL_SERVICE === 'brevo') {
+        // High-performance configuration for Brevo (Sendinblue)
+        console.log('🔧 Initializing Brevo SMTP Transporter...');
+        transporter = nodemailer.createTransport({
+            host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
+            port: parseInt(process.env.EMAIL_PORT) || 587,
+            secure: false, // Brevo uses STARTTLS on 587
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            },
+            // Brevo can handle concurrent connections, but we keep it safe
+            pool: true,
+            maxConnections: 3, 
+            rateLimit: 10, // 10 emails per second (Brevo limit is higher)
+        });
     } else {
         // Use custom SMTP configuration with connection pooling
         transporter = nodemailer.createTransport({
             pool: true, // Use connection pooling
             maxConnections: 1, // Limit to 1 connection to respecting server limits
             maxMessages: 5, // Recycle connection after 5 messages
-            rateDelta: 1000, // Limit sending rate if needed
+            rateDelta: 2000, // Show down rate limit to be safer
             rateLimit: 1,
+            connectionTimeout: 10000, // 10 seconds timeout for connection
+            greetingTimeout: 10000, // 10 seconds timeout for greeting
+            socketTimeout: 20000, // 20 seconds timeout for socket
             host: process.env.EMAIL_HOST,
             port: parseInt(process.env.EMAIL_PORT) || 587,
             secure: process.env.EMAIL_SECURE === 'true',
