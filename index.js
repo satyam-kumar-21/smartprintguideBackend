@@ -51,8 +51,8 @@ app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/chats', require('./routes/chatRoutes'));
 
 // Config routes
-app.get('/api/config/razorpay', (req, res) => {
-    res.json(process.env.RAZORPAY_KEY_ID);
+app.get('/api/config/clover', (req, res) => {
+    res.json(process.env.CLOVER_PUBLIC_KEY);
 });
 
 // Socket.io Authentication Middleware

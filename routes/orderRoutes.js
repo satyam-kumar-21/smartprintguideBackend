@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
     addOrderItems,
-    createRazorpayOrder,
-    verifyRazorpayPayment,
+    createCloverPayment,
     getOrderById,
     updateOrderToPaid,
     updateOrderStatus,
@@ -12,12 +11,8 @@ const {
 } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-router.route('/')
-    .post(protect, addOrderItems)
-    .get(protect, admin, getOrders);
-
-router.route('/create-razorpay-order').post(protect, createRazorpayOrder);
-router.route('/verify-payment').post(protect, verifyRazorpayPayment);
+router.route('/').post(protect, addOrderItems).get(protect, admin, getOrders);
+router.route('/clover/pay').post(protect, createCloverPayment);
 router.route('/myorders').get(protect, getMyOrders);
 router.route('/:id').get(getOrderById);
 router.route('/:id/pay').put(protect, updateOrderToPaid);

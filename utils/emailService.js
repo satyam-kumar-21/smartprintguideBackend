@@ -40,8 +40,13 @@ const initializeTransporter = async () => {
             testAccount = await createTestAccount();
         }
     } else {
-        // Use custom SMTP configuration
+        // Use custom SMTP configuration with connection pooling
         transporter = nodemailer.createTransport({
+            pool: true, // Use connection pooling
+            maxConnections: 1, // Limit to 1 connection to respecting server limits
+            maxMessages: 5, // Recycle connection after 5 messages
+            rateDelta: 1000, // Limit sending rate if needed
+            rateLimit: 1,
             host: process.env.EMAIL_HOST,
             port: parseInt(process.env.EMAIL_PORT) || 587,
             secure: process.env.EMAIL_SECURE === 'true',
@@ -111,7 +116,7 @@ const sendOTPEmail = async (email, otp, type = 'registration') => {
         `;
 
         const mailOptions = {
-            from: `"Printers App" <${process.env.EMAIL_USER}>`,
+            from: `"Smart ePrinting" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: subject,
             html: html

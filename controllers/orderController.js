@@ -1,7 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Order = require('../models/Order');
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
+const axios = require('axios');
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -44,76 +43,69 @@ const addOrderItems = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Initialize Razorpay order
-// @route   POST /api/orders/create-razorpay-order
+// @desc    Process Clover Payment
+// @route   POST /api/orders/clover/pay
 // @access  Private
-const createRazorpayOrder = asyncHandler(async (req, res) => {
-    const { amount } = req.body;
+const createCloverPayment = asyncHandler(async (req, res) => {
+  const { amount, orderId, source } = req.body;
 
-    const instance = new Razorpay({
-        key_id: process.env.RAZORPAY_KEY_ID,
-        key_secret: process.env.RAZORPAY_KEY_SECRET,
-    });
+  if (!amount || !orderId || !source) {
+    res.status(400);
+    throw new Error('Missing payment data');
+  }
 
-    const options = {
-        amount: Math.round(amount * 100), // amount in smallest currency unit (paise)
-        currency: "INR",
-        receipt: `receipt_${Date.now()}`,
-    };
+  const cloverUrl =
+    process.env.NODE_ENV === 'production'
+      ? 'https://api.clover.com/v1/charges'
+      : 'https://sandbox.dev.clover.com/v1/charges';
 
-    const order = await instance.orders.create(options);
-
-    if (!order) {
-        res.status(500);
-        throw new Error("Razorpay Order Creation Failed");
-    }
-
-    res.json(order);
-});
-
-// @desc    Verify Razorpay payment
-// @route   POST /api/orders/verify-payment
-// @access  Private
-const verifyRazorpayPayment = asyncHandler(async (req, res) => {
-    const { 
-        razorpay_order_id, 
-        razorpay_payment_id, 
-        razorpay_signature,
-        orderId 
-    } = req.body;
-
-    const sign = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSign = crypto
-        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-        .update(sign.toString())
-        .digest("hex");
-
-    if (razorpay_signature === expectedSign) {
-        // Payment verified
-        const order = await Order.findById(orderId);
-        if (order) {
-            order.isPaid = true;
-            order.paidAt = Date.now();
-            order.paymentResult = {
-                id: razorpay_payment_id,
-                status: 'paid',
-                update_time: Date.now().toString(),
-                email_address: req.user.email,
-            };
-            await order.save();
-            res.json({ message: "Payment verified successfully" });
-        } else {
-            console.error('Order not found for ID:', orderId);
-            res.status(404);
-            throw new Error("Order not found");
+  try {
+      const response = await axios.post(
+        cloverUrl,
+        {
+            amount: Math.round(amount * 100), // cents
+            currency: 'USD',
+            source, // token from frontend
+            metadata: { orderId },
+        },
+        {
+            headers: {
+                Authorization: `Bearer ${process.env.CLOVER_PRIVATE_KEY}`,
+                'Content-Type': 'application/json',
+            },
         }
-    } else {
-        console.error('Payment verification failed: Signature mismatch');
-        console.error('Expected:', expectedSign);
-        console.error('Received:', razorpay_signature);
+      );
+
+      if (!response.data || !response.data.id) {
         res.status(400);
-        throw new Error("Invalid signature sent!");
-    }
+        throw new Error('Clover payment failed');
+      }
+
+      const order = await Order.findById(orderId);
+      if (!order) {
+        res.status(404);
+        throw new Error('Order not found');
+      }
+
+      order.isPaid = true;
+      order.paidAt = Date.now();
+      order.paymentResult = {
+        id: response.data.id,
+        status: response.data.status,
+      };
+
+      await order.save();
+
+      res.json({
+        success: true,
+        message: 'Payment successful',
+        payment: response.data
+      });
+  } catch (error) {
+      console.error(error.response?.data || error.message);
+      res.status(400);
+      throw new Error(error.response?.data?.message || 'Payment failed');
+  }
 });
 
 // @desc    Get order by ID
@@ -198,8 +190,7 @@ const getOrders = asyncHandler(async (req, res) => {
 
 module.exports = {
     addOrderItems,
-    createRazorpayOrder,
-    verifyRazorpayPayment,
+    createCloverPayment,
     getOrderById,
     updateOrderToPaid,
     updateOrderStatus,

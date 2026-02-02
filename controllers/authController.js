@@ -1,44 +1,8 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
+const OTP = require('../models/OTP');
 const jwt = require('jsonwebtoken');
 const { generateOTP, sendOTPEmail } = require('../utils/emailService');
-const { storeOTP, verifyOTP } = require('../utils/otpService');
-const fs = require('fs');
-const path = require('path');
-
-const tempDataFile = path.join(__dirname, '../tempRegistrationData.json');
-
-// Load temp registration data from file
-const loadTempData = () => {
-    try {
-        if (fs.existsSync(tempDataFile)) {
-            const data = fs.readFileSync(tempDataFile, 'utf8');
-            const parsed = JSON.parse(data);
-            // Convert back to Map
-            const map = new Map();
-            for (const [key, value] of Object.entries(parsed)) {
-                map.set(key, value);
-            }
-            return map;
-        }
-    } catch (error) {
-        console.error('Error loading temp data:', error);
-    }
-    return new Map();
-};
-
-// Save temp registration data to file
-const saveTempData = (data) => {
-    try {
-        const obj = Object.fromEntries(data);
-        fs.writeFileSync(tempDataFile, JSON.stringify(obj, null, 2));
-    } catch (error) {
-        console.error('Error saving temp data:', error);
-    }
-};
-
-// Initialize temp data
-let tempRegistrationData = loadTempData();
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -117,20 +81,22 @@ const sendRegistrationOTP = asyncHandler(async (req, res) => {
 
     await sendOTPEmail(trimmedEmail, otp, 'registration');
 
-    // Store OTP temporarily (in production, store user data too)
-    storeOTP(trimmedEmail, otp);
+    // Clean old OTPs
+    await OTP.findOneAndDelete({ email: trimmedEmail, type: 'registration' });
 
-    // Store registration data temporarily (in production, use Redis or temp storage)
-    tempRegistrationData.set(trimmedEmail, {
-        firstName,
-        lastName,
-        password,
-        expiresAt: Date.now() + (10 * 60 * 1000) // 10 minutes
+    // Create new OTP record with registration data
+    await OTP.create({
+        email: trimmedEmail,
+        otp,
+        type: 'registration',
+        registrationData: {
+            firstName,
+            lastName,
+            password
+        }
     });
-    saveTempData(tempRegistrationData);
-    console.log('Registration data stored for email:', trimmedEmail);
 
-    console.log('Registration OTP sent successfully to:', trimmedEmail);
+    console.log('Registration OTP sent and stored in DB for:', trimmedEmail);
     res.json({ message: 'OTP sent to your email' });
 });
 
@@ -144,25 +110,19 @@ const verifyRegistrationOTP = asyncHandler(async (req, res) => {
     console.log('Verify registration OTP request:', { email: trimmedEmail, otp });
 
     // Verify OTP
-    const isValidOTP = verifyOTP(trimmedEmail, otp);
-    console.log('OTP verification result:', isValidOTP);
-    if (!isValidOTP) {
+    const otpRecord = await OTP.findOne({ 
+        email: trimmedEmail, 
+        otp, 
+        type: 'registration' 
+    });
+
+    if (!otpRecord) {
         console.log('OTP invalid or expired');
         res.status(400);
         throw new Error('Invalid or expired OTP');
     }
 
-    // Get registration data
-    const registrationData = tempRegistrationData.get(trimmedEmail);
-    console.log('Registration data found:', !!registrationData);
-    if (registrationData) {
-        console.log('Registration data expires at:', new Date(registrationData.expiresAt));
-    }
-    if (!registrationData || Date.now() > registrationData.expiresAt) {
-        console.log('Registration data expired or not found');
-        res.status(400);
-        throw new Error('Registration data expired');
-    }
+    const { registrationData } = otpRecord;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: trimmedEmail });
@@ -183,19 +143,14 @@ const verifyRegistrationOTP = asyncHandler(async (req, res) => {
 
         console.log('User created successfully:', user.email);
 
-        // Clean up temp data
-        tempRegistrationData.delete(trimmedEmail);
-        saveTempData(tempRegistrationData);
+        // Clean up OTP
+        await OTP.deleteOne({ _id: otpRecord._id });
 
         if (user) {
+            // Success response WITHOUT token
             res.status(201).json({
-                _id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                name: user.name,
-                email: user.email,
-                isAdmin: user.isAdmin,
-                token: generateToken(user._id),
+                message: 'Account verified successfully. Please log in.',
+                email: user.email
             });
         } else {
             res.status(400);
@@ -231,8 +186,15 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     await sendOTPEmail(trimmedEmail, otp, 'password-reset');
 
-    // Store OTP
-    storeOTP(`${trimmedEmail}-reset`, otp);
+    // Clean old OTPs
+    await OTP.findOneAndDelete({ email: trimmedEmail, type: 'reset' });
+
+    // Store OTP in DB
+    await OTP.create({
+        email: trimmedEmail,
+        otp,
+        type: 'reset'
+    });
 
     console.log('Password reset OTP sent successfully to:', trimmedEmail);
     res.json({ message: 'Password reset OTP sent to your email' });
@@ -247,8 +209,13 @@ const resetPassword = asyncHandler(async (req, res) => {
     const trimmedEmail = email.trim().toLowerCase();
 
     // Verify OTP
-    const isValidOTP = verifyOTP(`${trimmedEmail}-reset`, otp);
-    if (!isValidOTP) {
+    const otpRecord = await OTP.findOne({ 
+        email: trimmedEmail, 
+        otp, 
+        type: 'reset' 
+    });
+
+    if (!otpRecord) {
         res.status(400);
         throw new Error('Invalid or expired OTP');
     }
@@ -262,6 +229,9 @@ const resetPassword = asyncHandler(async (req, res) => {
 
     user.password = newPassword;
     await user.save();
+
+    // Clean up OTP
+    await OTP.deleteOne({ _id: otpRecord._id });
 
     res.json({ message: 'Password reset successfully' });
 });
