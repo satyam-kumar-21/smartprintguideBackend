@@ -49,6 +49,7 @@ const initializeTransporter = async () => {
     } else if (process.env.EMAIL_SERVICE === 'brevo' || (process.env.EMAIL_HOST && process.env.EMAIL_HOST.includes('brevo'))) {
         // High-performance configuration for Brevo (Sendinblue)
         console.log('🔧 Configured for Brevo SMTP');
+        console.log(`🔌 Connecting to: ${process.env.EMAIL_HOST || 'smtp-relay.brevo.com'}:${process.env.EMAIL_PORT || 587}`);
 
         // Check for common API Key vs SMTP Key mistake
         if (process.env.EMAIL_PASS && process.env.EMAIL_PASS.startsWith('xkeysib-')) {
