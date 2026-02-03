@@ -34,14 +34,21 @@ const createTestAccount = async () => {
 
 // Initialize transporter
 const initializeTransporter = async () => {
+    // Log the current configuration (sanitized) to debug on Render
+    console.log('📧 INITIALIZING EMAIL SERVICE');
+    console.log('• Service Var:', process.env.EMAIL_SERVICE);
+    console.log('• Host Var:', process.env.EMAIL_HOST);
+    console.log('• Port Var:', process.env.EMAIL_PORT);
+    console.log('• User Var:', process.env.EMAIL_USER ? '(Set)' : '(Not Set)');
+
     if (process.env.EMAIL_SERVICE === 'ethereal') {
         // Use Ethereal for testing
         if (!testAccount) {
             testAccount = await createTestAccount();
         }
-    } else if (process.env.EMAIL_SERVICE === 'brevo') {
+    } else if (process.env.EMAIL_SERVICE === 'brevo' || (process.env.EMAIL_HOST && process.env.EMAIL_HOST.includes('brevo'))) {
         // High-performance configuration for Brevo (Sendinblue)
-        console.log('🔧 Initializing Brevo SMTP Transporter...');
+        console.log('🔧 Configured for Brevo SMTP');
         transporter = nodemailer.createTransport({
             host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
             port: parseInt(process.env.EMAIL_PORT) || 587,
@@ -50,19 +57,31 @@ const initializeTransporter = async () => {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             },
-            // Brevo can handle concurrent connections, but we keep it safe
+           // Force IPv4 to avoid Render/Node IPv6 timeouts
+            family: 4, 
+            // Debug logs
+            logger: true, 
+            debug: true,
+            // Pooling settings
             pool: true,
             maxConnections: 3, 
-            rateLimit: 10, // 10 emails per second (Brevo limit is higher)
+            rateLimit: 10,
+            // Timeouts
+            connectionTimeout: 10000, 
+            greetingTimeout: 10000, 
+            socketTimeout: 10000,
         });
     } else {
         // Use custom SMTP configuration with connection pooling
+        console.log('🔧 Configured for Custom SMTP:', process.env.EMAIL_HOST);
         transporter = nodemailer.createTransport({
             pool: true, // Use connection pooling
             maxConnections: 1, // Limit to 1 connection to respecting server limits
             maxMessages: 5, // Recycle connection after 5 messages
             rateDelta: 2000, // Show down rate limit to be safer
             rateLimit: 1,
+            // Force IPv4
+            family: 4, 
             connectionTimeout: 10000, // 10 seconds timeout for connection
             greetingTimeout: 10000, // 10 seconds timeout for greeting
             socketTimeout: 20000, // 20 seconds timeout for socket
@@ -135,7 +154,7 @@ const sendOTPEmail = async (email, otp, type = 'registration') => {
         `;
 
         const mailOptions = {
-            from: `"Smart ePrinting" <${process.env.EMAIL_USER}>`,
+            from: `"Smart ePrinting" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
             to: email,
             subject: subject,
             html: html
