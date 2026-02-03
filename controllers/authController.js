@@ -107,24 +107,17 @@ const verifyRegistrationOTP = asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
 
     const trimmedEmail = email.trim().toLowerCase();
-    const trimmedOtp = otp ? otp.toString().trim() : '';
-
-    console.log('Verify registration OTP request:', { email: trimmedEmail, otp: trimmedOtp });
-
-    // DEBUG: Check what exists in DB for this email regardless of OTP
-    const existingRecords = await OTP.find({ email: trimmedEmail });
-    console.log(`DEBUG: Found ${existingRecords.length} OTP records for ${trimmedEmail}`);
-    existingRecords.forEach(r => console.log(' - Record:', { otp: r.otp, type: r.type, created: r.createdAt }));
+    console.log('Verify registration OTP request:', { email: trimmedEmail, otp });
 
     // Verify OTP
     const otpRecord = await OTP.findOne({ 
         email: trimmedEmail, 
-        otp: trimmedOtp, 
+        otp, 
         type: 'registration' 
     });
 
     if (!otpRecord) {
-        console.log('OTP verification failed. Input:', trimmedOtp);
+        console.log('OTP invalid or expired');
         res.status(400);
         throw new Error('Invalid or expired OTP');
     }
