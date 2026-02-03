@@ -109,6 +109,33 @@ const initializeTransporter = async () => {
 // Initialize on module load
 initializeTransporter();
 
+// Generic Send Email Function (Reuses the working transporter)
+const sendEmail = async ({ to, subject, html, text, from, replyTo }) => {
+    try {
+        if (!transporter) {
+            await initializeTransporter();
+        }
+
+        const mailOptions = {
+            from: from || `"Smart ePrinting" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+            to: to,
+            subject: subject,
+            html: html,
+            text: text,
+            replyTo: replyTo
+        };
+
+        console.log('📤 Sending generic email to:', to);
+        const result = await transporter.sendMail(mailOptions);
+        console.log('✅ Generic email sent successfully! Message ID:', result.messageId);
+        return result;
+
+    } catch (error) {
+        console.error('❌ Generic email sending failed:', error.message);
+        throw error;
+    }
+};
+
 // Generate 6-digit OTP
 const generateOTP = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -117,16 +144,6 @@ const generateOTP = () => {
 // Send OTP email
 const sendOTPEmail = async (email, otp, type = 'registration') => {
     try {
-        // Ensure transporter is initialized
-        if (!transporter) {
-            await initializeTransporter();
-        }
-
-        console.log('=== SENDING EMAIL OTP ===');
-        console.log('To:', email);
-        console.log('OTP:', otp);
-        console.log('Type:', type);
-
         const subject = type === 'registration' ? 'Verify Your Account - Printers App' : 'Reset Your Password - Printers App';
         const html = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -160,29 +177,9 @@ const sendOTPEmail = async (email, otp, type = 'registration') => {
             </div>
         `;
 
-        const mailOptions = {
-            from: `"Smart ePrinting" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-            to: email,
-            subject: subject,
-            html: html
-        };
+        // Use the reused function
+        return await sendEmail({ to: email, subject, html });
 
-        console.log('📤 Sending email with options:', {
-            from: mailOptions.from,
-            to: mailOptions.to,
-            subject: mailOptions.subject
-        });
-
-        const result = await transporter.sendMail(mailOptions);
-        console.log('✅ Email sent successfully!');
-        console.log('📧 Message ID:', result.messageId);
-
-        if (testAccount) {
-            console.log('🌐 View email at:', nodemailer.getTestMessageUrl(result));
-            console.log('🔗 Ethereal Web Interface: https://ethereal.email');
-        }
-
-        return result;
     } catch (error) {
         console.error('❌ Email sending failed:', error.message);
         console.error('🔧 Full error details:', error);
@@ -198,5 +195,6 @@ const sendOTPEmail = async (email, otp, type = 'registration') => {
 
 module.exports = {
     generateOTP,
-    sendOTPEmail
+    sendOTPEmail,
+    sendEmail
 };

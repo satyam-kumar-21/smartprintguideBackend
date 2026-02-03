@@ -1,51 +1,5 @@
 const asyncHandler = require('express-async-handler');
-const nodemailer = require('nodemailer');
-const { sendOTPEmail } = require('../utils/emailService'); // We will just reuse the config pattern later if needed, but for now let's fix the transporter logic. 
-
-// Singleton transporter pattern
-let transporter = null;
-
-const getTransporter = () => {
-    if (transporter) return transporter;
-
-    if (process.env.EMAIL_SERVICE === 'brevo') {
-        transporter = nodemailer.createTransport({
-            host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
-            port: parseInt(process.env.EMAIL_PORT) || 587,
-            secure: false, 
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            },
-            pool: true,
-            maxConnections: 3, 
-            rateLimit: 10,
-        });
-    } else {
-        // Fallback or other providers
-        transporter = nodemailer.createTransport({
-            pool: true, 
-            maxConnections: 1, 
-            maxMessages: 5, 
-            rateDelta: 2000, 
-            rateLimit: 1,
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 20000,
-            host: process.env.EMAIL_HOST,
-            port: Number(process.env.EMAIL_PORT),
-            secure: process.env.EMAIL_SECURE === 'true',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            tls: {
-                rejectUnauthorized: false
-            }
-        });
-    }
-    return transporter;
-};
+const { sendEmail } = require('../utils/emailService');
 
 // @desc    Send contact email
 // @route   POST /api/contact
@@ -53,13 +7,8 @@ const getTransporter = () => {
 const sendContactEmail = asyncHandler(async (req, res) => {
     const { type } = req.body;
 
-    let mailOptions;
-    
-    // Get the shared transporter instance
-    const emailTransporter = getTransporter();
+    let subject, html, text, fromName, replyToEmail;
 
-    // Verify connection only if needed (optional, doing it every time slows things down)
-    // We'll rely on sendMail throwing an error if it fails
 
     if (type === 'return-exchange') {
         const { 
