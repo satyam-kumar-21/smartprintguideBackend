@@ -56,10 +56,12 @@ const initializeTransporter = async () => {
             console.warn('⚠️ Please use the SMTP Master Password found in Brevo Dashboard -> SMTP & API -> SMTP Tab.');
         }
 
+        const isSecure = process.env.EMAIL_PORT == 465;
+
         transporter = nodemailer.createTransport({
             host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
             port: parseInt(process.env.EMAIL_PORT) || 587,
-            secure: parseInt(process.env.EMAIL_PORT) === 465, // True for 465, false for other ports
+            secure: isSecure, // True for 465, false for 587
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
@@ -71,12 +73,21 @@ const initializeTransporter = async () => {
             debug: true,
             // Pooling settings
             pool: true,
-            maxConnections: 2, // Lower concurrency to be safe
-            rateLimit: 1, // Be gentle
-            // Timeouts - Increased for validity
-            connectionTimeout: 30000, 
-            greetingTimeout: 30000, 
-            socketTimeout: 30000,
+            maxConnections: 2, 
+            rateLimit: 1, 
+            // Timeouts - Heavy timeouts to fight networking issues
+            connectionTimeout: 60000 * 2, // 2 minutes
+            greetingTimeout: 60000 * 2, 
+            socketTimeout: 60000 * 2, 
+            // TLS Options
+            tls: {
+                // Do not fail on invalid certs
+                rejectUnauthorized: false, 
+                // Force TLS v1.2 or higher
+                minVersion: 'TLSv1.2',
+                // Explicitly set cipher suites if needed (usually not, but good for negotiation)
+                ciphers: 'SSLv3' 
+            }
         });
     } else {
         // Use custom SMTP configuration with connection pooling
