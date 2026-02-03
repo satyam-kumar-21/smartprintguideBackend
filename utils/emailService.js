@@ -71,22 +71,18 @@ const initializeTransporter = async () => {
             // Debug logs
             logger: true, 
             debug: true,
-            // Pooling settings
-            pool: true,
-            maxConnections: 2, 
-            rateLimit: 1, 
+            // Pooling settings: DISABLED for Render stability
+            pool: false, 
             // Timeouts - Heavy timeouts to fight networking issues
-            connectionTimeout: 60000 * 2, // 2 minutes
-            greetingTimeout: 60000 * 2, 
-            socketTimeout: 60000 * 2, 
+            connectionTimeout: 30000, 
+            greetingTimeout: 30000, 
+            socketTimeout: 30000, 
             // TLS Options
             tls: {
                 // Do not fail on invalid certs
                 rejectUnauthorized: false, 
                 // Force TLS v1.2 or higher
-                minVersion: 'TLSv1.2',
-                // Explicitly set cipher suites if needed (usually not, but good for negotiation)
-                ciphers: 'SSLv3' 
+                minVersion: 'TLSv1.2'
             }
         });
     } else {
