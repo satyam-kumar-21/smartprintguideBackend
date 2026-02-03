@@ -128,7 +128,7 @@ const sendEmail = async ({ to, subject, html, text, from, replyTo }) => {
         }
 
         const mailOptions = {
-            from: from || `"Smart ePrinting" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+            from: from || `"Smart ePrinting" <${process.env.EMAIL_FROM || 'no-reply@smarteprinting.com'}>`,
             to: to,
             subject: subject,
             html: html,

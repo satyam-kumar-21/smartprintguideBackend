@@ -116,11 +116,11 @@ ${message}
     // Send email using shared service
     try {
         await sendEmail({
-             to: process.env.CONTACT_RECEIVER_EMAIL,
+             to: process.env.CONTACT_RECEIVER_EMAIL || 'admin@smarteprinting.com', // Fallback for safety
              subject,
              html,
              text,
-             from: `"${fromName}" <${process.env.EMAIL_FROM}>`,
+             from: `"${fromName}" <${process.env.EMAIL_FROM || 'no-reply@smarteprinting.com'}>`,
              replyTo: replyToEmail
         });
         res.status(200).json({ message: 'Email sent successfully' });

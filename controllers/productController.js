@@ -275,7 +275,10 @@ const updateProduct = asyncHandler(async (req, res) => {
 
         // Image Update Logic
         let currentImages = [];
-        if (req.body.images) {
+        if (req.body.existingImages) {
+            currentImages = typeof req.body.existingImages === 'string' ? JSON.parse(req.body.existingImages) : req.body.existingImages;
+        } else if (req.body.images) {
+            // Fallback for backward compatibility or direct API usage
             currentImages = typeof req.body.images === 'string' ? JSON.parse(req.body.images) : req.body.images;
         } else {
             currentImages = product.images;
