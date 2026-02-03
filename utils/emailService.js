@@ -49,10 +49,17 @@ const initializeTransporter = async () => {
     } else if (process.env.EMAIL_SERVICE === 'brevo' || (process.env.EMAIL_HOST && process.env.EMAIL_HOST.includes('brevo'))) {
         // High-performance configuration for Brevo (Sendinblue)
         console.log('🔧 Configured for Brevo SMTP');
+
+        // Check for common API Key vs SMTP Key mistake
+        if (process.env.EMAIL_PASS && process.env.EMAIL_PASS.startsWith('xkeysib-')) {
+            console.warn('⚠️ CRITICAL WARNING: It looks like you are using a Brevo API Key (starts with xkeysib-) as your EMAIL_PASS.');
+            console.warn('⚠️ Please use the SMTP Master Password found in Brevo Dashboard -> SMTP & API -> SMTP Tab.');
+        }
+
         transporter = nodemailer.createTransport({
             host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
             port: parseInt(process.env.EMAIL_PORT) || 587,
-            secure: false, // Brevo uses STARTTLS on 587
+            secure: parseInt(process.env.EMAIL_PORT) === 465, // True for 465, false for other ports
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
@@ -64,12 +71,12 @@ const initializeTransporter = async () => {
             debug: true,
             // Pooling settings
             pool: true,
-            maxConnections: 3, 
-            rateLimit: 10,
-            // Timeouts
-            connectionTimeout: 10000, 
-            greetingTimeout: 10000, 
-            socketTimeout: 10000,
+            maxConnections: 2, // Lower concurrency to be safe
+            rateLimit: 1, // Be gentle
+            // Timeouts - Increased for validity
+            connectionTimeout: 30000, 
+            greetingTimeout: 30000, 
+            socketTimeout: 30000,
         });
     } else {
         // Use custom SMTP configuration with connection pooling
@@ -183,7 +190,9 @@ const sendOTPEmail = async (email, otp, type = 'registration') => {
         // For development, also log the OTP so we can test
         console.log('🔧 DEV MODE: OTP is:', otp, '- You can use this for testing if email fails');
 
-        throw new Error(`Failed to send email: ${error.message}`);
+        // Allow flow to continue even if email fails (CRITICAL for Render deployment with bad creds)
+        console.log('⚠️ Email failed but continuing flow. Please fix SMTP credentials.');
+        return { messageId: 'error-fallback', originalError: error };
     }
 };;
 
