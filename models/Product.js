@@ -14,7 +14,7 @@ const productSchema = mongoose.Schema({
     title: { type: String, required: true },
     slug: { type: String, unique: true },
     category: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Category' },
-    description: { type: String, required: true },
+    description: { type: String },
     price: { type: Number, required: true, default: 0 },
     oldPrice: { type: Number, default: 0 },
     countInStock: { type: Number, required: true, default: 0 },
