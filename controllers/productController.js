@@ -418,7 +418,7 @@ const getSearchSuggestions = asyncHandler(async (req, res) => {
             { brand: { $regex: `^${query}`, $options: 'i' } },
             { color: { $regex: `^${query}`, $options: 'i' } }
         ]
-    }).select('title brand color').limit(10);
+    }).select('title brand color images slug price').limit(10);
 
     res.json(suggestions);
 });
