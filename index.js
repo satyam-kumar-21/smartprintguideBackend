@@ -19,7 +19,8 @@ const io = new Server(server, {
     cors: {
         origin: [
             "http://localhost:5173",
-            "https://printers-test-websites.netlify.app/"
+            "https://printers-test-websites.netlify.app/",
+            "https://smarteprinting.com/",
         ],
         methods: ["GET", "POST"],
         credentials: true
