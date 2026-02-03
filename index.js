@@ -12,13 +12,6 @@ connectDB();
 
 const app = express();
 
-// const io = new Server(server, {
-//     cors: {
-//         origin: 'http://localhost:5173',
-//         methods: ['GET', 'POST'],
-//         credentials: true
-//     }
-// });
 
 // Middleware
 const server = http.createServer(app);
