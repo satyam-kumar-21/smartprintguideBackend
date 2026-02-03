@@ -456,6 +456,75 @@ const createProductReview = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Update product review
+// @route   PUT /api/products/:id/reviews
+// @access  Private
+const updateProductReview = asyncHandler(async (req, res) => {
+    const { rating, comment } = req.body;
+    const product = await Product.findById(req.params.id);
+
+    if (product) {
+        const reviewIndex = product.reviews.findIndex(
+            (r) => r.user.toString() === req.user._id.toString()
+        );
+
+        if (reviewIndex !== -1) {
+            product.reviews[reviewIndex].rating = Number(rating);
+            product.reviews[reviewIndex].comment = comment;
+            product.reviews[reviewIndex].name = req.user.name; // update name if changed
+
+            product.rating =
+                product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+                product.reviews.length;
+
+            await product.save();
+            res.json({ message: 'Review updated' });
+        } else {
+            res.status(404);
+            throw new Error('Review not found');
+        }
+    } else {
+        res.status(404);
+        throw new Error('Product not found');
+    }
+});
+
+// @desc    Delete product review
+// @route   DELETE /api/products/:id/reviews
+// @access  Private
+const deleteProductReview = asyncHandler(async (req, res) => {
+    const product = await Product.findById(req.params.id);
+
+    if (product) {
+        const reviewIndex = product.reviews.findIndex(
+            (r) => r.user.toString() === req.user._id.toString()
+        );
+
+        if (reviewIndex !== -1) {
+            product.reviews.splice(reviewIndex, 1);
+
+            product.numReviews = product.reviews.length;
+            
+            if (product.reviews.length > 0) {
+                product.rating =
+                    product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+                    product.reviews.length;
+            } else {
+                product.rating = 0;
+            }
+
+            await product.save();
+            res.json({ message: 'Review deleted' });
+        } else {
+            res.status(404);
+            throw new Error('Review not found');
+        }
+    } else {
+        res.status(404);
+        throw new Error('Product not found');
+    }
+});
+
 module.exports = {
     getProducts,
     getProductById,
@@ -463,6 +532,8 @@ module.exports = {
     updateProduct,
     deleteProduct,
     createProductReview,
+    updateProductReview,
+    deleteProductReview,
     upload,
     uploadExcel,
     getSearchSuggestions,
