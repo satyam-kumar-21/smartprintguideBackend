@@ -94,6 +94,9 @@ const getProducts = asyncHandler(async (req, res) => {
         const category = await Category.findOne({ name: { $regex: new RegExp(`^${categoryName}$`, 'i') } });
         if (category) {
             query.category = category._id;
+        } else {
+            // Category provided but not found -> return empty set
+            return res.json({ products: [], page: 1, pages: 0, total: 0 });
         }
     }
 
