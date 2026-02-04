@@ -5,7 +5,7 @@ const { protect, admin } = require('../middleware/authMiddleware');
 
 router.route('/')
     .get(getProducts)
-    .post(protect, admin, upload.array('images', 5), createProduct);
+    .post(protect, admin, upload.array('images', 50), createProduct);
 
 router.route('/:id/reviews')
     .post(protect, createProductReview)
@@ -18,7 +18,7 @@ router.route('/search/suggestions').get(getSearchSuggestions);
 
 router.route('/:id')
     .get(getProductById)
-    .put(protect, admin, upload.array('images', 5), updateProduct)
+    .put(protect, admin, upload.array('images', 50), updateProduct)
     .delete(protect, admin, deleteProduct);
 
 module.exports = router;
