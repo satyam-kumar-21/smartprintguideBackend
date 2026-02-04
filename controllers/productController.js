@@ -114,8 +114,16 @@ const getProducts = asyncHandler(async (req, res) => {
         ];
     }
 
-    const products = await Product.find(query).populate('category', 'name');
-    res.json(products);
+    const pageSize = Number(req.query.limit) || 20;
+    const page = Number(req.query.page) || 1;
+
+    const count = await Product.countDocuments(query);
+    const products = await Product.find(query)
+        .populate('category', 'name')
+        .limit(pageSize)
+        .skip(pageSize * (page - 1));
+
+    res.json({ products, page, pages: Math.ceil(count / pageSize), total: count });
 });
 
 // @desc    Fetch single product
