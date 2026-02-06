@@ -1,12 +1,23 @@
 const asyncHandler = require('express-async-handler');
 const Category = require('../models/Category');
+const Product = require('../models/Product');
 
 // @desc    Get all categories
 // @route   GET /api/categories
 // @access  Public
 const getCategories = asyncHandler(async (req, res) => {
     const categories = await Category.find({});
-    res.json(categories);
+    
+    // Enrich with product counts
+    const categoriesWithCounts = await Promise.all(categories.map(async (cat) => {
+        const count = await Product.countDocuments({ category: cat._id });
+        return {
+            ...cat.toObject(),
+            count
+        };
+    }));
+
+    res.json(categoriesWithCounts);
 });
 
 // @desc    Get category by ID
