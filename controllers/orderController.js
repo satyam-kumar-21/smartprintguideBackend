@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const axios = require('axios');
 
@@ -184,8 +185,48 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 // @route   GET /api/orders
 // @access  Private/Admin
 const getOrders = asyncHandler(async (req, res) => {
-    const orders = await Order.find({}).populate('user', '_id name email');
-    res.json(orders);
+    const pageSize = Number(req.query.limit) || 20;
+    const page = Number(req.query.page) || 1;
+    const search = req.query.search || '';
+
+    let query = {};
+
+    if (search) {
+        query.$or = [
+            { _id: { $regex: search, $options: 'i' } },
+            // Search in populated fields isn't directly supported in find query easily unless using aggregate
+            // But we can try to search by order fields
+            { 'shippingAddress.address': { $regex: search, $options: 'i' } },
+            { 'shippingAddress.city': { $regex: search, $options: 'i' } },
+            { 'user.name': { $regex: search, $options: 'i' } }, // This won't work on simple find
+            { 'user.email': { $regex: search, $options: 'i' } } // This won't work on simple find
+        ];
+        
+        // Note: For searching user fields, we'd need aggregate lookup. 
+        // For simplicity, we'll keep search limited to Order ID and Shipping Address fields for now
+        // OR rely on client side filtering if dataset is small, but goal is server side.
+        // Let's stick to Order props for now.
+         query = {
+             $or: [
+                // Only treat search as ObjectId if it's valid, else it crashes
+                ...(mongoose.Types.ObjectId.isValid(search) ? [{ _id: search }] : []),
+                { 'shippingAddress.address': { $regex: search, $options: 'i' } },
+                { 'shippingAddress.city': { $regex: search, $options: 'i' } },
+                { 'shippingAddress.postalCode': { $regex: search, $options: 'i' } },
+                { 'shippingAddress.country': { $regex: search, $options: 'i' } },
+                { status: { $regex: search, $options: 'i' } }
+            ]
+         };
+    }
+
+    const count = await Order.countDocuments(query);
+    const orders = await Order.find(query)
+        .populate('user', '_id name email')
+        .sort({ createdAt: -1 })
+        .limit(pageSize)
+        .skip(pageSize * (page - 1));
+
+    res.json({ orders, page, pages: Math.ceil(count / pageSize), total: count });
 });
 
 module.exports = {

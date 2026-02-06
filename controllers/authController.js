@@ -294,8 +294,30 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/users
 // @access  Private/Admin
 const getUsers = asyncHandler(async (req, res) => {
-    const users = await User.find({}).select('-password');
-    res.json(users);
+    const pageSize = Number(req.query.limit) || 20;
+    const page = Number(req.query.page) || 1;
+    const search = req.query.search || '';
+
+    let query = {};
+
+    if (search) {
+        query.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } },
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } }
+        ];
+    }
+
+    // Sort users by creation date if timestamps exist, or _id
+    const count = await User.countDocuments(query);
+    const users = await User.find(query)
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .limit(pageSize)
+        .skip(pageSize * (page - 1));
+
+    res.json({ users, page, pages: Math.ceil(count / pageSize), total: count });
 });
 
 // @desc    Delete user
