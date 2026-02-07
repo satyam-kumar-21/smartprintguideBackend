@@ -87,6 +87,9 @@ const uploadToCloudinary = async (buffer, filename) => {
 const getProducts = asyncHandler(async (req, res) => {
     const categoryName = req.query.category;
     const search = req.query.search;
+    const brand = req.query.brand;
+    const sort = req.query.sort;
+
     let query = {};
     
     if (categoryName && categoryName !== 'undefined' && categoryName !== 'null') {
@@ -117,12 +120,24 @@ const getProducts = asyncHandler(async (req, res) => {
         ];
     }
 
+    if (brand && brand !== 'undefined' && brand !== 'null') {
+        query.brand = { $regex: brand, $options: 'i' };
+    }
+
+    let sortOption = {};
+    if (sort === 'lowToHigh') {
+        sortOption.price = 1;
+    } else if (sort === 'highToLow') {
+        sortOption.price = -1;
+    }
+
     const pageSize = Number(req.query.limit) || 20;
     const page = Number(req.query.page) || 1;
 
     const count = await Product.countDocuments(query);
     const products = await Product.find(query)
         .populate('category', 'name')
+        .sort(sortOption)
         .limit(pageSize)
         .skip(pageSize * (page - 1));
 

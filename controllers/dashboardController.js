@@ -78,6 +78,9 @@ const getAnalytics = asyncHandler(async (req, res) => {
         { $group: { _id: '$status', count: { $sum: 1 } } }
     ]);
 
+    // Active Stock
+    const activeStock = await Product.countDocuments({ countInStock: { $gt: 0 } });
+
     // Revenue by Month (last 6 months)
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const revenueByMonth = await Order.aggregate([
@@ -98,16 +101,28 @@ const getAnalytics = asyncHandler(async (req, res) => {
     res.json({
         revenue: {
             total: totalRevenue,
-            growth: parseFloat(revenueGrowth)
+            currentMonth: currentRevenue,
+            lastMonth: lastRevenue,
+            growth: revenueGrowth
         },
         orders: {
             total: totalOrders,
-            growth: parseFloat(ordersGrowth)
+            currentMonth: currentMonthOrders,
+            lastMonth: lastMonthOrders,
+            growth: ordersGrowth
         },
         customers: {
             total: totalCustomers,
-            growth: parseFloat(customersGrowth)
+            currentMonth: currentMonthCustomers,
+            lastMonth: lastMonthCustomers,
+            growth: customersGrowth
         },
+        activeStock,
+        recentOrders,
+        ordersByStatus,
+        revenueByMonth
+    });
+});
         recentOrders,
         ordersByStatus,
         revenueByMonth
