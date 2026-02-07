@@ -123,11 +123,6 @@ const getAnalytics = asyncHandler(async (req, res) => {
         revenueByMonth
     });
 });
-        recentOrders,
-        ordersByStatus,
-        revenueByMonth
-    });
-});
 
 // @desc    Get dashboard stats
 // @route   GET /api/dashboard/stats
