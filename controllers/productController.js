@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const asyncHandler = require('express-async-handler');
 const Product = require('../models/Product');
+const Order = require('../models/Order');
 const multer = require('multer');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
@@ -457,6 +458,21 @@ const createProductReview = asyncHandler(async (req, res) => {
     const product = await Product.findById(req.params.id);
 
     if (product) {
+        // Check if user has purchased the product and it is delivered
+        // Admins can always review
+        if (!req.user.isAdmin) {
+             const order = await Order.findOne({
+                user: req.user._id,
+                'orderItems.product': req.params.id,
+                isDelivered: true
+            });
+
+            if (!order) {
+                res.status(400);
+                throw new Error('You can only review products you have purchased and received.');
+            }
+        }
+
         const alreadyReviewed = product.reviews.find(
             (r) => r.user.toString() === req.user._id.toString()
         );
