@@ -1,6 +1,25 @@
 const EasyPostClient = require('@easypost/api');
 const asyncHandler = require('express-async-handler');
 
+// Helper to calculate distance in miles
+function getDistanceFromLatLonInMiles(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const R = 3959; // Radius of the earth in miles
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in miles
+    return d.toFixed(1);
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+}
+
 // @desc    Get shipping rates
 // @route   POST /api/shipping/rates
 // @access  Private
@@ -15,8 +34,9 @@ const getShippingRates = asyncHandler(async (req, res) => {
     const client = new EasyPostClient(process.env.EASYPOST_API_KEY);
 
     try {
-        // 1. Create To Address
+        // 1. Create To Address (Verify to get coords if possible)
         const toAddress = await client.Address.create({
+            verify: true,
             street1: address,
             city: city,
             state: state, 
@@ -29,6 +49,7 @@ const getShippingRates = asyncHandler(async (req, res) => {
         // 2. Create From Address (Company Location)
         // Using environment variables for company location, with defaults
         const fromAddress = await client.Address.create({
+            verify: true,
             company: 'Smart Eprinting',
             street1: process.env.COMPANY_ADDRESS || '123 Market St',
             city: process.env.COMPANY_CITY || 'San Francisco',
@@ -60,7 +81,31 @@ const getShippingRates = asyncHandler(async (req, res) => {
             parcel: parcel,
         });
 
-        res.json(shipment.rates);
+        // Try to calculate distance
+        let distance = null;
+        if (
+            toAddress.verifications && 
+            toAddress.verifications.delivery && 
+            toAddress.verifications.delivery.details
+        ) {
+             const toLat = toAddress.verifications.delivery.details.latitude;
+             const toLon = toAddress.verifications.delivery.details.longitude;
+             
+             let fromLat, fromLon;
+             if (fromAddress.verifications && fromAddress.verifications.delivery && fromAddress.verifications.delivery.details) {
+                 fromLat = fromAddress.verifications.delivery.details.latitude;
+                 fromLon = fromAddress.verifications.delivery.details.longitude;
+             }
+
+             if (toLat && toLon && fromLat && fromLon) {
+                 distance = getDistanceFromLatLonInMiles(fromLat, fromLon, toLat, toLon);
+             }
+        }
+
+        res.json({
+            rates: shipment.rates,
+            distance: distance
+        });
 
     } catch (error) {
         console.error('EasyPost Error:', error);

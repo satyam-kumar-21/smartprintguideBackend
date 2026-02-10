@@ -12,23 +12,23 @@ const getAnalytics = asyncHandler(async (req, res) => {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-    // Total Revenue (all paid orders)
+    // Total Revenue (all paid orders, excluding cancelled)
     const revenueResult = await Order.aggregate([
-        { $match: { isPaid: true } },
+        { $match: { isPaid: true, status: { $ne: 'Cancelled' } } },
         { $group: { _id: null, total: { $sum: '$totalPrice' } } }
     ]);
     const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
     // Current Month Revenue
     const currentMonthRevenue = await Order.aggregate([
-        { $match: { isPaid: true, createdAt: { $gte: currentMonthStart } } },
+        { $match: { isPaid: true, status: { $ne: 'Cancelled' }, createdAt: { $gte: currentMonthStart } } },
         { $group: { _id: null, total: { $sum: '$totalPrice' } } }
     ]);
     const currentRevenue = currentMonthRevenue.length > 0 ? currentMonthRevenue[0].total : 0;
 
     // Last Month Revenue
     const lastMonthRevenue = await Order.aggregate([
-        { $match: { isPaid: true, createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } } },
+        { $match: { isPaid: true, status: { $ne: 'Cancelled' }, createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } } },
         { $group: { _id: null, total: { $sum: '$totalPrice' } } }
     ]);
     const lastRevenue = lastMonthRevenue.length > 0 ? lastMonthRevenue[0].total : 0;
@@ -84,7 +84,7 @@ const getAnalytics = asyncHandler(async (req, res) => {
     // Revenue by Month (last 6 months)
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const revenueByMonth = await Order.aggregate([
-        { $match: { isPaid: true, createdAt: { $gte: sixMonthsAgo } } },
+        { $match: { isPaid: true, status: { $ne: 'Cancelled' }, createdAt: { $gte: sixMonthsAgo } } },
         {
             $group: {
                 _id: {
