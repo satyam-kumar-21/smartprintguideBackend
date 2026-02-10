@@ -229,6 +229,30 @@ const getOrders = asyncHandler(async (req, res) => {
     res.json({ orders, page, pages: Math.ceil(count / pageSize), total: count });
 });
 
+// @desc    Check if user can review a product
+// @route   GET /api/orders/check-review-eligibility/:productId
+// @access  Private
+const checkReviewEligibility = asyncHandler(async (req, res) => {
+    const { productId } = req.params;
+
+    // Admins can always review
+    if (req.user.isAdmin) {
+        return res.json({ canReview: true });
+    }
+
+    const order = await Order.findOne({
+        user: req.user._id,
+        'orderItems.product': productId,
+        isDelivered: true
+    });
+
+    if (order) {
+        res.json({ canReview: true });
+    } else {
+        res.json({ canReview: false });
+    }
+});
+
 module.exports = {
     addOrderItems,
     createCloverPayment,
@@ -236,5 +260,7 @@ module.exports = {
     updateOrderToPaid,
     updateOrderStatus,
     getMyOrders,
-    getOrders
+    getOrders,
+    checkReviewEligibility
 };
+

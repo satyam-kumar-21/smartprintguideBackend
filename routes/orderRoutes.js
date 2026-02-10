@@ -7,12 +7,15 @@ const {
     updateOrderToPaid,
     updateOrderStatus,
     getMyOrders,
-    getOrders
+    getOrders,
+    checkReviewEligibility
 } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 router.route('/').post(protect, addOrderItems).get(protect, admin, getOrders);
+router.route('/check-review-eligibility/:productId').get(protect, checkReviewEligibility);
 router.route('/clover/pay').post(protect, createCloverPayment);
+
 router.route('/myorders').get(protect, getMyOrders);
 router.route('/:id').get(getOrderById);
 router.route('/:id/pay').put(protect, updateOrderToPaid);
