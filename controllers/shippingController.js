@@ -36,7 +36,7 @@ const getShippingRates = asyncHandler(async (req, res) => {
     try {
         // 1. Create To Address (Verify to get coords if possible)
         const toAddress = await client.Address.create({
-            verify: true,
+            verify: ['delivery'],
             street1: address,
             city: city,
             state: state, 
@@ -49,7 +49,7 @@ const getShippingRates = asyncHandler(async (req, res) => {
         // 2. Create From Address (Company Location)
         // Using environment variables for company location, with defaults
         const fromAddress = await client.Address.create({
-            verify: true,
+            verify: ['delivery'],
             company: 'Smart Eprinting',
             street1: process.env.COMPANY_ADDRESS || '123 Market St',
             city: process.env.COMPANY_CITY || 'San Francisco',
@@ -83,23 +83,33 @@ const getShippingRates = asyncHandler(async (req, res) => {
 
         // Try to calculate distance
         let distance = null;
-        if (
-            toAddress.verifications && 
-            toAddress.verifications.delivery && 
-            toAddress.verifications.delivery.details
-        ) {
-             const toLat = toAddress.verifications.delivery.details.latitude;
-             const toLon = toAddress.verifications.delivery.details.longitude;
-             
-             let fromLat, fromLon;
-             if (fromAddress.verifications && fromAddress.verifications.delivery && fromAddress.verifications.delivery.details) {
-                 fromLat = fromAddress.verifications.delivery.details.latitude;
-                 fromLon = fromAddress.verifications.delivery.details.longitude;
-             }
+        try {
+            // Helper to safe get coords
+            const getCoords = (addr) => {
+                if (addr.verifications && addr.verifications.delivery && addr.verifications.delivery.details) {
+                    return addr.verifications.delivery.details;
+                }
+                // Fallback for company address if verification didn't return coords but we know them
+                // Approximates for Cypress, TX 77433
+                if (addr.zip === '77433' && addr.state === 'TX') {
+                    return { latitude: 29.9691, longitude: -95.6963 };
+                }
+                return null;
+            };
 
-             if (toLat && toLon && fromLat && fromLon) {
-                 distance = getDistanceFromLatLonInMiles(fromLat, fromLon, toLat, toLon);
-             }
+            const toCoords = getCoords(toAddress);
+            const fromCoords = getCoords(fromAddress);
+
+            if (toCoords && fromCoords) {
+                distance = getDistanceFromLatLonInMiles(
+                    fromCoords.latitude, 
+                    fromCoords.longitude, 
+                    toCoords.latitude, 
+                    toCoords.longitude
+                );
+            }
+        } catch (calcError) {
+            console.error('Distance calc error:', calcError);
         }
 
         res.json({
