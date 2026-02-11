@@ -113,9 +113,24 @@ const getShippingRates = asyncHandler(async (req, res) => {
         }
 
         res.json({
-            rates: shipment.rates,
-            distance: distance
-        });
+                        // Filter rates to only show the 4 specified accounts
+                        const allowedAccounts = [
+                            'ca_e3cbd16a6eb84914985d90875a6ec074', // Canada Post
+                            'ca_76d0939dc1ce4c99870bbc2844d8d02b', // FedEx
+                            'ca_c5f03a14c10d4fbab837e8a35b01c7df', // UPS
+                            'ca_b82a2962176446d09a48bc649977f467'  // USPS
+                        ];
+                        // UPSDAP account: 1399VH (not an EasyPost account ID, but may be in carrier_account_id or carrier)
+                        const filteredRates = shipment.rates.filter(rate => {
+                            return (
+                                allowedAccounts.includes(rate.carrier_account_id) ||
+                                (rate.carrier === 'UPSDAP' || rate.carrier_account_id === '1399VH')
+                            );
+                        });
+                        res.json({
+                                rates: filteredRates,
+                                distance: distance
+                        });
 
     } catch (error) {
         console.error('EasyPost Error:', error);
