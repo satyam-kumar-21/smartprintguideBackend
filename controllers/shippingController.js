@@ -127,14 +127,9 @@ const getShippingRates = asyncHandler(async (req, res) => {
                 });
 
                 res.json({
-                        rates: filteredRates,
-                        distance: distance
+                    rates: filteredRates,
+                    distance: distance
                 });
-                        });
-                        res.json({
-                                rates: filteredRates,
-                                distance: distance
-                        });
 
     } catch (error) {
         console.error('EasyPost Error:', error);
