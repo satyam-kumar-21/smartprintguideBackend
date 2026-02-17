@@ -36,6 +36,27 @@ const productSchema = mongoose.Schema({
     reviews: [reviewSchema],
     images: [String],
     sales: { type: Number, default: 0 },
+    // Structured Product Attributes
+    technology: {
+        type: [String],
+        enum: ['Inkjet', 'Laser', 'Laser (B/W)'],
+    },
+    usageCategory: {
+        type: [String],
+        enum: ['Home', 'Office', 'Mobile', 'Photo'],
+    },
+    allInOneType: {
+        type: [String],
+        enum: ['Multifunction', 'Single Function'],
+    },
+    wireless: {
+        type: String,
+        enum: ['Yes', 'No'],
+    },
+    mainFunction: {
+        type: [String],
+        enum: ['Print', 'Scan', 'Copy', 'Fax', 'Print Only'],
+    },
 }, {
     timestamps: true
 });

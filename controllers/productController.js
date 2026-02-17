@@ -90,6 +90,12 @@ const getProducts = asyncHandler(async (req, res) => {
     const search = req.query.search;
     const brand = req.query.brand;
     const sort = req.query.sort;
+    // Structured attribute filters
+    const technology = req.query.technology;
+    const usageCategory = req.query.usageCategory;
+    const allInOneType = req.query.allInOneType;
+    const wireless = req.query.wireless;
+    const mainFunction = req.query.mainFunction;
 
     let query = {};
     
@@ -119,6 +125,27 @@ const getProducts = asyncHandler(async (req, res) => {
             { depth: { $regex: search, $options: 'i' } },
             { screenSize: { $regex: search, $options: 'i' } }
         ];
+    }
+
+    // Structured attribute filters
+    if (technology) {
+        query.technology = technology;
+    }
+    if (usageCategory) {
+        // usageCategory can be comma-separated
+        const values = Array.isArray(usageCategory) ? usageCategory : usageCategory.split(',');
+        query.usageCategory = { $in: values };
+    }
+    if (allInOneType) {
+        query.allInOneType = allInOneType;
+    }
+    if (wireless) {
+        query.wireless = wireless;
+    }
+    if (mainFunction) {
+        // mainFunction can be comma-separated
+        const values = Array.isArray(mainFunction) ? mainFunction : mainFunction.split(',');
+        query.mainFunction = { $in: values };
     }
 
     if (brand && brand !== 'undefined' && brand !== 'null') {
@@ -212,8 +239,25 @@ const createProduct = asyncHandler(async (req, res) => {
         const {
             title, brand, category, price, oldPrice, countInStock, description,
             shortDetails, shortSpecification, overview, technicalSpecification,
-            color, width, height, depth, screenSize, reviews
+            color, width, height, depth, screenSize, reviews,
+            technology, usageCategory, allInOneType, wireless, mainFunction
         } = req.body;
+
+        // Parse all array fields from form-data
+        const parseArrayField = (field) => {
+            if (!field) return [];
+            if (Array.isArray(field)) return field;
+            if (typeof field === 'string') {
+                try {
+                    // Try JSON parse first
+                    return JSON.parse(field);
+                } catch {
+                    // Fallback: comma-separated
+                    return field.split(',').map(v => v.trim()).filter(Boolean);
+                }
+            }
+            return [];
+        };
 
         if (!title || !price || !category) {
             res.status(400);
@@ -252,7 +296,12 @@ const createProduct = asyncHandler(async (req, res) => {
             numReviews: parsedReviews.length,
             rating: parsedReviews.length > 0
                 ? parsedReviews.reduce((acc, item) => item.rating + acc, 0) / parsedReviews.length
-                : 0
+                : 0,
+            technology: parseArrayField(technology),
+            usageCategory: parseArrayField(usageCategory),
+            allInOneType: parseArrayField(allInOneType),
+            wireless,
+            mainFunction: parseArrayField(mainFunction)
         });
 
         const createdProduct = await product.save();
@@ -276,15 +325,32 @@ const updateProduct = asyncHandler(async (req, res) => {
     const {
         title, brand, category, price, oldPrice, countInStock, description,
         shortDetails, shortSpecification, overview, technicalSpecification,
-        color, width, height, depth, screenSize, reviews
+        color, width, height, depth, screenSize, reviews,
+        technology, usageCategory, allInOneType, wireless, mainFunction
     } = req.body;
+
+    // Parse all array fields from form-data
+    const parseArrayField = (field) => {
+        if (!field) return [];
+        if (Array.isArray(field)) return field;
+        if (typeof field === 'string') {
+            try {
+                // Try JSON parse first
+                return JSON.parse(field);
+            } catch {
+                // Fallback: comma-separated
+                return field.split(',').map(v => v.trim()).filter(Boolean);
+            }
+        }
+        return [];
+    };
 
     const product = await Product.findById(req.params.id);
 
     if (product) {
-            product.title = title || product.title;
-            product.slug = title ? title.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, "-") : product.slug;
-            product.brand = brand || product.brand;
+        product.title = title || product.title;
+        product.slug = title ? title.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, "-") : product.slug;
+        product.brand = brand || product.brand;
         product.category = category || product.category;
         product.price = price || product.price;
         product.oldPrice = oldPrice ?? product.oldPrice;
@@ -299,6 +365,11 @@ const updateProduct = asyncHandler(async (req, res) => {
         product.height = height ?? product.height;
         product.depth = depth ?? product.depth;
         product.screenSize = screenSize ?? product.screenSize;
+        product.technology = technology ? parseArrayField(technology) : product.technology;
+        product.usageCategory = usageCategory ? parseArrayField(usageCategory) : product.usageCategory;
+        product.allInOneType = allInOneType ? parseArrayField(allInOneType) : product.allInOneType;
+        product.wireless = wireless ?? product.wireless;
+        product.mainFunction = mainFunction ? parseArrayField(mainFunction) : product.mainFunction;
 
         // Image Update Logic
         let currentImages = [];
