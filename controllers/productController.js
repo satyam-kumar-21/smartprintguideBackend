@@ -149,7 +149,8 @@ const getProducts = asyncHandler(async (req, res) => {
     }
 
     if (brand && brand !== 'undefined' && brand !== 'null') {
-        query.brand = { $regex: brand, $options: 'i' };
+        // Brand must match exactly (case-insensitive)
+        query.brand = { $regex: `^${brand}$`, $options: 'i' };
     }
 
     let sortOption = {};
