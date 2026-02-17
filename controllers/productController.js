@@ -86,6 +86,8 @@ const uploadToCloudinary = async (buffer, filename) => {
 // @route   GET /api/products
 // @access  Public
 const getProducts = asyncHandler(async (req, res) => {
+        // DEBUG: Log all incoming query params
+        console.log('DEBUG: Incoming filter params:', req.query);
     const categoryName = req.query.category;
     const search = req.query.search;
     const brand = req.query.brand;
@@ -164,6 +166,8 @@ const getProducts = asyncHandler(async (req, res) => {
     const page = Number(req.query.page) || 1;
 
     const count = await Product.countDocuments(query);
+    // DEBUG: Log the final MongoDB query object
+    console.log('DEBUG: Final MongoDB query:', JSON.stringify(query));
     const products = await Product.find(query)
         .populate('category', 'name')
         .sort(sortOption)
