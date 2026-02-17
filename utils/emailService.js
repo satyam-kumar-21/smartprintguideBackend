@@ -122,7 +122,7 @@ const sendEmail = async ({ to, subject, html, text, from, replyTo }) => {
         }
 
         const mailOptions = {
-            from: from || `"Smart ePrinting" <${process.env.EMAIL_FROM || 'no-reply@smarteprinting.com'}>`,
+            from: from || `"smartPrintGuide" <${process.env.EMAIL_FROM || 'no-reply@smartprintguide.com'}>`,
             to: to,
             subject: subject,
             html: html,
@@ -149,18 +149,18 @@ const generateOTP = () => {
 // Send OTP email
 const sendOTPEmail = async (email, otp, type = 'registration') => {
     try {
-        const subject = type === 'registration' ? 'Verify Your Account - Smart ePrinting' : 'Reset Your Password - Smart ePrinting';
+        const subject = type === 'registration' ? 'Verify Your Account - smartPrintGuide' : 'Reset Your Password - smartPrintGuide';
         const html = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
-                    <h1 style="color: white; margin: 0; font-size: 28px;">Smart ePrinting</h1>
+                    <h1 style="color: white; margin: 0; font-size: 28px;">smartPrintGuide</h1>
                     <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">${type === 'registration' ? 'Account Verification' : 'Password Reset'}</p>
                 </div>
                 <div style="background: white; padding: 40px 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <h2 style="color: #333; margin-top: 0;">${type === 'registration' ? 'Verify Your Account' : 'Reset Your Password'}</h2>
                     <p style="color: #666; font-size: 16px; line-height: 1.6;">Hello!</p>
                     <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                        ${type === 'registration' ? 'Thank you for registering with Smart ePrinting. Your OTP code is:' : 'We received a request to reset your password. Your OTP code is:'}
+                        ${type === 'registration' ? 'Thank you for registering with smartPrintGuide. Your OTP code is:' : 'We received a request to reset your password. Your OTP code is:'}
                     </p>
                     <div style="background-color: #f8f9fa; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
                         <span style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</span>
@@ -175,7 +175,7 @@ const sendOTPEmail = async (email, otp, type = 'registration') => {
                     </div>
                     <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
                         <p style="color: #999; font-size: 12px; margin: 0;">
-                            This is an automated message from Smart ePrinting. Please do not reply to this email.
+                            This is an automated message from smartPrintGuide. Please do not reply to this email.
                         </p>
                     </div>
                 </div>

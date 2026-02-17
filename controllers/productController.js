@@ -127,25 +127,25 @@ const getProducts = asyncHandler(async (req, res) => {
         ];
     }
 
-    // Structured attribute filters
-    if (technology) {
-        query.technology = technology;
+    // Structured attribute filters (AND logic)
+    if (technology && technology.length > 0) {
+        const values = Array.isArray(technology) ? technology : technology.split(',');
+        query.technology = { $all: values };
     }
-    if (usageCategory) {
-        // usageCategory can be comma-separated
+    if (usageCategory && usageCategory.length > 0) {
         const values = Array.isArray(usageCategory) ? usageCategory : usageCategory.split(',');
-        query.usageCategory = { $in: values };
+        query.usageCategory = { $all: values };
     }
-    if (allInOneType) {
-        query.allInOneType = allInOneType;
+    if (allInOneType && allInOneType.length > 0) {
+        const values = Array.isArray(allInOneType) ? allInOneType : allInOneType.split(',');
+        query.allInOneType = { $all: values };
     }
     if (wireless) {
         query.wireless = wireless;
     }
-    if (mainFunction) {
-        // mainFunction can be comma-separated
+    if (mainFunction && mainFunction.length > 0) {
         const values = Array.isArray(mainFunction) ? mainFunction : mainFunction.split(',');
-        query.mainFunction = { $in: values };
+        query.mainFunction = { $all: values };
     }
 
     if (brand && brand !== 'undefined' && brand !== 'null') {
