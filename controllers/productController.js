@@ -23,7 +23,7 @@ function checkFileType(file, cb) {
     if (extname && mimetype) {
         return cb(null, true);
     } else {
-        console.log(`File rejected: ${file.originalname}, mimetype: ${file.mimetype}`);
+        // ...existing code...
         cb('Images only (jpg, jpeg, png, webp)!');
     }
 }
@@ -49,7 +49,7 @@ const uploadExcel = multer({
 const upload = multer({
     storage,
     fileFilter: function (req, file, cb) {
-        console.log('Multer filtering file:', file.originalname);
+        // ...existing code...
         checkFileType(file, cb);
     },
     limits: {
@@ -87,7 +87,7 @@ const uploadToCloudinary = async (buffer, filename) => {
 // @access  Public
 const getProducts = asyncHandler(async (req, res) => {
         // DEBUG: Log all incoming query params
-        console.log('DEBUG: Incoming filter params:', req.query);
+        // ...existing code...
     const categoryName = req.query.category;
     const search = req.query.search;
     const brand = req.query.brand;
@@ -167,7 +167,7 @@ const getProducts = asyncHandler(async (req, res) => {
 
     const count = await Product.countDocuments(query);
     // DEBUG: Log the final MongoDB query object
-    console.log('DEBUG: Final MongoDB query:', JSON.stringify(query));
+    // ...existing code...
     const products = await Product.find(query)
         .populate('category', 'name')
         .sort(sortOption)
@@ -226,8 +226,7 @@ const getProductById = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 const createProduct = asyncHandler(async (req, res) => {
     try {
-        console.log('CREATE PRODUCT BODY:', req.body);
-        console.log('CREATE PRODUCT FILES:', req.files);
+        // ...existing code...
 
         let imageUrls = [];
         if (req.files && req.files.length > 0) {
@@ -236,7 +235,7 @@ const createProduct = asyncHandler(async (req, res) => {
                 uploadToCloudinary(file.buffer, file.originalname)
             );
             imageUrls = await Promise.all(uploadPromises);
-            console.log('Images uploaded to Cloudinary:', imageUrls);
+            // ...existing code...
         } else if (req.body.images) {
             imageUrls = typeof req.body.images === 'string' ? JSON.parse(req.body.images) : req.body.images;
         }
@@ -310,7 +309,7 @@ const createProduct = asyncHandler(async (req, res) => {
         });
 
         const createdProduct = await product.save();
-        console.log('PRODUCT CREATED SUCCESSFULLY:', createdProduct._id);
+        // ...existing code...
         res.status(201).json(createdProduct);
     } catch (error) {
         console.error('Error creating product:', error);
@@ -323,9 +322,7 @@ const createProduct = asyncHandler(async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Private/Admin
 const updateProduct = asyncHandler(async (req, res) => {
-    console.log('UPDATE PRODUCT ID:', req.params.id);
-    console.log('UPDATE PRODUCT BODY:', req.body);
-    console.log('UPDATE PRODUCT FILES:', req.files);
+    // ...existing code...
 
     const {
         title, brand, category, price, oldPrice, countInStock, description,
@@ -394,7 +391,7 @@ const updateProduct = asyncHandler(async (req, res) => {
             );
             const newImageUrls = await Promise.all(uploadPromises);
             product.images = [...currentImages, ...newImageUrls];
-            console.log('New images uploaded to Cloudinary:', newImageUrls);
+            // ...existing code...
         } else {
             product.images = currentImages;
         }

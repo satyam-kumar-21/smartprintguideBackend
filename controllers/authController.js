@@ -58,11 +58,11 @@ const sendRegistrationOTP = asyncHandler(async (req, res) => {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    console.log('Send registration OTP request:', { firstName, lastName, email: trimmedEmail });
+    // ...existing code...
 
     // Validate input
     if (!firstName || !lastName || !email || !password) {
-        console.log('Validation failed: missing fields');
+        // ...existing code...
         res.status(400);
         throw new Error('All fields are required');
     }
@@ -70,14 +70,14 @@ const sendRegistrationOTP = asyncHandler(async (req, res) => {
     // Check if user already exists
     const userExists = await User.findOne({ email: trimmedEmail });
     if (userExists) {
-        console.log('User already exists:', trimmedEmail);
+        // ...existing code...
         res.status(400);
         throw new Error('User already exists');
     }
 
     // Generate and send OTP
     const otp = generateOTP();
-    console.log('Generated OTP for registration:', otp);
+    // ...existing code...
 
     await sendOTPEmail(trimmedEmail, otp, 'registration');
 
@@ -96,7 +96,7 @@ const sendRegistrationOTP = asyncHandler(async (req, res) => {
         }
     });
 
-    console.log('Registration OTP sent and stored in DB for:', trimmedEmail);
+    // ...existing code...
     res.json({ message: 'OTP sent to your email' });
 });
 
@@ -107,7 +107,7 @@ const verifyRegistrationOTP = asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
 
     const trimmedEmail = email.trim().toLowerCase();
-    console.log('Verify registration OTP request:', { email: trimmedEmail, otp });
+    // ...existing code...
 
     // Verify OTP
     const otpRecord = await OTP.findOne({ 
@@ -117,7 +117,7 @@ const verifyRegistrationOTP = asyncHandler(async (req, res) => {
     });
 
     if (!otpRecord) {
-        console.log('OTP invalid or expired');
+        // ...existing code...
         res.status(400);
         throw new Error('Invalid or expired OTP');
     }
@@ -141,7 +141,7 @@ const verifyRegistrationOTP = asyncHandler(async (req, res) => {
             password: registrationData.password,
         });
 
-        console.log('User created successfully:', user.email);
+        // ...existing code...
 
         // Clean up OTP
         await OTP.deleteOne({ _id: otpRecord._id });
@@ -171,18 +171,18 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    console.log('Forgot password request for:', trimmedEmail);
+    // ...existing code...
 
     const user = await User.findOne({ email: trimmedEmail });
     if (!user) {
-        console.log('User not found:', trimmedEmail);
+        // ...existing code...
         res.status(404);
         throw new Error('User not found');
     }
 
     // Generate and send OTP
     const otp = generateOTP();
-    console.log('Generated OTP for password reset:', otp);
+    // ...existing code...
 
     await sendOTPEmail(trimmedEmail, otp, 'password-reset');
 
@@ -196,7 +196,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
         type: 'reset'
     });
 
-    console.log('Password reset OTP sent successfully to:', trimmedEmail);
+    // ...existing code...
     res.json({ message: 'Password reset OTP sent to your email' });
 });
 

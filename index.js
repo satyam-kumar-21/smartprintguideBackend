@@ -68,7 +68,7 @@ io.use((socket, next) => {
 
 // Socket.io Connection Handler
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.userId);
+    // ...existing code...
 
     // Join user's personal room
     socket.join(`user-${socket.userId}`);
@@ -76,7 +76,7 @@ io.on('connection', (socket) => {
     // Join chat room
     socket.on('join-chat', (chatId) => {
         socket.join(`chat-${chatId}`);
-        console.log(`User ${socket.userId} joined chat ${chatId}`);
+        // ...existing code...
     });
 
     // Send message event
@@ -103,7 +103,7 @@ io.on('connection', (socket) => {
 
     // Disconnect
     socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.userId);
+        // ...existing code...
     });
 });
 
@@ -112,7 +112,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {});
 
 // Export io for use in other files if needed
 module.exports = { io };

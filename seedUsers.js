@@ -16,13 +16,13 @@ const seedUsers = async () => {
         let adminUser = await User.findOne({ email: adminEmail });
         
         if (adminUser) {
-            console.log(`Admin user ${adminEmail} already exists. Updating password/admin status...`);
+            // ...existing code...
             adminUser.password = adminPass; // schema pre-save will hash this
             adminUser.isAdmin = true;
             await adminUser.save();
-            console.log('Admin user updated.');
+            // ...existing code...
         } else {
-            console.log(`Creating admin user ${adminEmail}...`);
+            // ...existing code...
             await User.create({
                 firstName: 'Satyam',
                 lastName: 'Admin',
@@ -31,7 +31,7 @@ const seedUsers = async () => {
                 password: adminPass,
                 isAdmin: true
             });
-            console.log('Admin user created.');
+            // ...existing code...
         }
 
         // 2. Regular User
@@ -41,13 +41,13 @@ const seedUsers = async () => {
         let normalUser = await User.findOne({ email: userEmail });
         
         if (normalUser) {
-            console.log(`Regular user ${userEmail} already exists. Updating password...`);
+            // ...existing code...
             normalUser.password = userPass;
             normalUser.isAdmin = false;
             await normalUser.save();
-            console.log('Regular user updated.');
+            // ...existing code...
         } else {
-            console.log(`Creating regular user ${userEmail}...`);
+            // ...existing code...
             await User.create({
                 firstName: 'Satyam',
                 lastName: 'User',
@@ -56,10 +56,10 @@ const seedUsers = async () => {
                 password: userPass,
                 isAdmin: false
             });
-            console.log('Regular user created.');
+            // ...existing code...
         }
 
-        console.log('User check/creation complete.');
+        // ...existing code...
         process.exit();
     } catch (error) {
         console.error('Error seeding users:', error);

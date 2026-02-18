@@ -7,18 +7,18 @@ dotenv.config();
 const connectDB = async () => {
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log('MongoDB Connected...');
+        // ...existing code...
         
         const products = await Product.find({ slug: { $exists: false } });
-        console.log(`Found ${products.length} products without slugs.`);
+        // ...existing code...
         
         for (const product of products) {
             product.slug = product.title.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, "-");
             await product.save();
-            console.log(`Slug generated for: ${product.title}`);
+            // ...existing code...
         }
         
-        console.log('All products updated.');
+        // ...existing code...
         process.exit();
     } catch (error) {
         console.error(`Error: ${error.message}`);

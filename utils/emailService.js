@@ -32,11 +32,7 @@ const createTestAccount = async () => {
 // Initialize transporter
 const initializeTransporter = async () => {
     // Log the current configuration (sanitized) to debug on Render
-    console.log('📧 INITIALIZING EMAIL SERVICE');
-    console.log('• Service Var:', process.env.EMAIL_SERVICE);
-    console.log('• Host Var:', process.env.EMAIL_HOST);
-    console.log('• Port Var:', process.env.EMAIL_PORT);
-    console.log('• User Var:', process.env.EMAIL_USER ? '(Set)' : '(Not Set)');
+    // ...existing code...
 
     if (process.env.EMAIL_SERVICE === 'ethereal') {
         // Use Ethereal for testing
@@ -45,8 +41,7 @@ const initializeTransporter = async () => {
         }
     } else if (process.env.EMAIL_SERVICE === 'brevo' || (process.env.EMAIL_HOST && process.env.EMAIL_HOST.includes('brevo'))) {
         // High-performance configuration for Brevo (Sendinblue)
-        console.log('🔧 Configured for Brevo SMTP');
-        console.log(`🔌 Connecting to: ${process.env.EMAIL_HOST || 'smtp-relay.brevo.com'}:${process.env.EMAIL_PORT || 587}`);
+        // ...existing code...
 
         // Check for common API Key vs SMTP Key mistake
         if (process.env.EMAIL_PASS && process.env.EMAIL_PASS.startsWith('xkeysib-')) {
@@ -85,7 +80,7 @@ const initializeTransporter = async () => {
         });
     } else {
         // Use custom SMTP configuration with connection pooling
-        console.log('🔧 Configured for Custom SMTP:', process.env.EMAIL_HOST);
+        // ...existing code...
         transporter = nodemailer.createTransport({
             pool: true, // Use connection pooling
             maxConnections: 1, // Limit to 1 connection to respecting server limits
@@ -130,9 +125,9 @@ const sendEmail = async ({ to, subject, html, text, from, replyTo }) => {
             replyTo: replyTo
         };
 
-        console.log('📤 Sending generic email to:', to);
+        // ...existing code...
         const result = await transporter.sendMail(mailOptions);
-        console.log('✅ Generic email sent successfully! Message ID:', result.messageId);
+        // ...existing code...
         return result;
 
     } catch (error) {
@@ -190,10 +185,10 @@ const sendOTPEmail = async (email, otp, type = 'registration') => {
         console.error('🔧 Full error details:', error);
 
         // For development, also log the OTP so we can test
-        console.log('🔧 DEV MODE: OTP is:', otp, '- You can use this for testing if email fails');
+        // ...existing code...
 
         // Allow flow to continue even if email fails (CRITICAL for Render deployment with bad creds)
-        console.log('⚠️ Email failed but continuing flow. Please fix SMTP credentials.');
+        // ...existing code...
         return { messageId: 'error-fallback', originalError: error };
     }
 };;
