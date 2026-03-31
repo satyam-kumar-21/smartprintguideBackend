@@ -104,8 +104,16 @@ const createCloverPayment = asyncHandler(async (req, res) => {
       });
   } catch (error) {
       console.error(error.response?.data || error.message);
-      res.status(400);
-      throw new Error(error.response?.data?.message || 'Payment failed');
+      const cloverErr = error.response?.data;
+      let reason = 'Payment failed';
+      if (cloverErr?.error?.message) {
+        reason = cloverErr.error.message;
+      } else if (cloverErr?.message) {
+        reason = cloverErr.message;
+      } else if (error.message && error.message !== 'Payment failed') {
+        reason = error.message;
+      }
+      res.status(400).json({ message: `Payment failed: ${reason}` });
   }
 });
 

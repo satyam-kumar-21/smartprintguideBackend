@@ -50,11 +50,11 @@ const getShippingRates = asyncHandler(async (req, res) => {
         // Using environment variables for company location, with defaults
         const fromAddress = await client.Address.create({
             verify: ['delivery'],
-            company: 'Smart Eprinting',
-            street1: process.env.COMPANY_ADDRESS || '123 Market St',
-            city: process.env.COMPANY_CITY || 'San Francisco',
-            state: process.env.COMPANY_STATE || 'CA',
-            zip: process.env.COMPANY_ZIP || '94105',
+            company: 'Smart Print Guide',
+            street1: process.env.COMPANY_ADDRESS || '7181 Beacon Dr 15',
+            city: process.env.COMPANY_CITY || 'Reno',
+            state: process.env.COMPANY_STATE || 'NV',
+            zip: process.env.COMPANY_ZIP || '89506',
             country: process.env.COMPANY_COUNTRY || 'US',
             phone: process.env.COMPANY_PHONE || '415-555-5555',
         });

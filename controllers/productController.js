@@ -165,14 +165,15 @@ const getProducts = asyncHandler(async (req, res) => {
     const pageSize = Number(req.query.limit) || 20;
     const page = Number(req.query.page) || 1;
 
-    const count = await Product.countDocuments(query);
-    // DEBUG: Log the final MongoDB query object
-    // ...existing code...
-    const products = await Product.find(query)
-        .populate('category', 'name')
-        .sort(sortOption)
-        .limit(pageSize)
-        .skip(pageSize * (page - 1));
+    const [count, products] = await Promise.all([
+        Product.countDocuments(query),
+        Product.find(query)
+            .populate('category', 'name')
+            .sort(sortOption)
+            .limit(pageSize)
+            .skip(pageSize * (page - 1))
+            .lean()
+    ]);
 
     res.json({ products, page, pages: Math.ceil(count / pageSize), total: count });
 });
