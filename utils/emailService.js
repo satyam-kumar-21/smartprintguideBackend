@@ -31,7 +31,6 @@ const createTestAccount = async () => {
 
 // Initialize transporter
 const initializeTransporter = async () => {
-    // Log the current configuration (sanitized) to debug on Render
     // ...existing code...
 
     if (process.env.EMAIL_SERVICE === 'ethereal') {
@@ -43,11 +42,7 @@ const initializeTransporter = async () => {
         // High-performance configuration for Brevo (Sendinblue)
         // ...existing code...
 
-        // Check for common API Key vs SMTP Key mistake
-        if (process.env.EMAIL_PASS && process.env.EMAIL_PASS.startsWith('xkeysib-')) {
-            console.warn('⚠️ CRITICAL WARNING: It looks like you are using a Brevo API Key (starts with xkeysib-) as your EMAIL_PASS.');
-            console.warn('⚠️ Please use the SMTP Master Password found in Brevo Dashboard -> SMTP & API -> SMTP Tab.');
-        }
+        // ...existing code...
 
         const isSecure = process.env.EMAIL_PORT == 465;
 
@@ -62,8 +57,8 @@ const initializeTransporter = async () => {
            // Force IPv4 to avoid Render/Node IPv6 timeouts
             family: 4, 
             // Debug logs
-            logger: true, 
-            debug: true,
+            logger: false, 
+            debug: false,
             // Pooling settings: DISABLED for Render stability
             pool: false, 
             // Timeouts - Heavy timeouts to fight networking issues
@@ -178,7 +173,9 @@ const sendOTPEmail = async (email, otp, type = 'registration') => {
         `;
 
         // Use the reused function
-        return await sendEmail({ to: email, subject, html });
+        // Use OTP_FROM_EMAIL for OTP emails
+        const otpFrom = `"smartPrintGuide" <${process.env.OTP_FROM_EMAIL || 'no-reply@smartprintguide.com'}>`;
+        return await sendEmail({ to: email, subject, html, from: otpFrom });
 
     } catch (error) {
         console.error('❌ Email sending failed:', error.message);
